@@ -15,6 +15,12 @@
  */
 package com.example.android.sunshine.app;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.GoogleApiAvailability;
+import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
+import com.google.android.gms.common.GooglePlayServicesRepairableException;
+import com.google.android.gms.location.places.ui.PlacePicker;
+
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.Dialog;
@@ -30,15 +36,10 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 
-import com.google.android.gms.common.ConnectionResult;
-import com.google.android.gms.common.GoogleApiAvailability;
-import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
-import com.google.android.gms.common.GooglePlayServicesRepairableException;
-import com.google.android.gms.location.places.ui.PlacePicker;
-
 public class LocationEditTextPreference extends EditTextPreference {
     static final private int DEFAULT_MINIMUM_LOCATION_LENGTH = 2;
     private int mMinLength;
+
 
     public LocationEditTextPreference(Context context, AttributeSet attrs) {
         super(context, attrs);
@@ -84,7 +85,7 @@ public class LocationEditTextPreference extends EditTextPreference {
                 Activity settingsActivity = (SettingsActivity) context;
                 try {
                     settingsActivity.startActivityForResult(
-                            builder.build(context), SettingsActivity.PLACE_PICKER_REQUEST);
+                            builder.build(settingsActivity), SettingsActivity.PLACE_PICKER_REQUEST);
 
                 } catch (GooglePlayServicesNotAvailableException
                         | GooglePlayServicesRepairableException e) {
