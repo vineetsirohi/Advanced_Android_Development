@@ -31,11 +31,11 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
-import android.text.format.Time;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
 import java.lang.ref.WeakReference;
+import java.util.Calendar;
 import java.util.TimeZone;
 import java.util.concurrent.TimeUnit;
 
@@ -93,17 +93,16 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
         Paint mBackgroundPaint;
 
-        Paint mTextPaint;
+        Paint mTextPaintTime;
 
         boolean mAmbient;
 
-        Time mTime;
+        Calendar mCalendar;
 
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                mTime.clear(intent.getStringExtra("time-zone"));
-                mTime.setToNow();
+                mCalendar.setTimeZone(TimeZone.getDefault());
             }
         };
 
@@ -135,10 +134,10 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(resources.getColor(R.color.background));
 
-            mTextPaint = new Paint();
-            mTextPaint = createTextPaint(resources.getColor(R.color.white_text));
+            mTextPaintTime = new Paint();
+            mTextPaintTime = createTextPaint(resources.getColor(R.color.white_text));
 
-            mTime = new Time();
+            mCalendar = Calendar.getInstance();
         }
 
         @Override
@@ -163,8 +162,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 registerReceiver();
 
                 // Update time zone in case it changed while we weren't visible.
-                mTime.clear(TimeZone.getDefault().getID());
-                mTime.setToNow();
+                mCalendar.setTimeZone(TimeZone.getDefault());
             } else {
                 unregisterReceiver();
             }
@@ -203,7 +201,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
             float textSize = resources.getDimension(isRound
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
 
-            mTextPaint.setTextSize(textSize);
+            mTextPaintTime.setTextSize(textSize);
+            mTextPaintTime.setTextAlign(Paint.Align.CENTER);
         }
 
         @Override
@@ -224,7 +223,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             if (mAmbient != inAmbientMode) {
                 mAmbient = inAmbientMode;
                 if (mLowBitAmbient) {
-                    mTextPaint.setAntiAlias(!inAmbientMode);
+                    mTextPaintTime.setAntiAlias(!inAmbientMode);
                 }
                 invalidate();
             }
@@ -268,11 +267,19 @@ public class MyWatchFace extends CanvasWatchFaceService {
             }
 
             // Draw H:MM in ambient mode or H:MM:SS in interactive mode.
-            mTime.setToNow();
+            long now = System.currentTimeMillis();
+            mCalendar.setTimeInMillis(now);
             String text = mAmbient
-                    ? String.format("%d:%02d", mTime.hour, mTime.minute)
-                    : String.format("%d:%02d:%02d", mTime.hour, mTime.minute, mTime.second);
-            canvas.drawText(text, mXOffset, mYOffset, mTextPaint);
+                    ? String.format("%d:%02d", mCalendar.get(Calendar.HOUR_OF_DAY),
+                    mCalendar.get(Calendar.MINUTE))
+                    : String.format("%d:%02d:%02d", mCalendar.get(Calendar.HOUR_OF_DAY),
+                            mCalendar.get(Calendar.MINUTE), mCalendar.get(Calendar.SECOND));
+
+            int centerX = bounds.width() / 2;
+            int centerY = bounds.height() / 2;
+            Rect textBounds = new Rect();
+            mTextPaintTime.getTextBounds(text, 0, text.length(), textBounds);
+            canvas.drawText(text, centerX, mYOffset, mTextPaintTime);
         }
 
         /**
