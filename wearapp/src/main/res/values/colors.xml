@@ -4,6 +4,7 @@
     <color name="background2">#212121</color>
     <color name="background_arc">#ffffff</color>
     <color name="white_text">#ffffff</color>
+    <color name="secondary_white_text">#cccccc</color>
     <color name="primary_text">#212121</color>
     <color name="secondary_text">#727272</color>
 </resources>
