@@ -115,6 +115,10 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
         Date mDate;
 
+        String weatherTempHigh = "29°";
+
+        String weatherTempLow = "21°";
+
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -328,6 +332,39 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mTextPaintDate.getTextBounds(dateText, 0, dateText.length(), textBounds);
             canvas.drawText(dateText, centerX, mYOffset + mTextPaintDate.getTextSize() + 5,
                     mTextPaintDate);
+
+            if (!mAmbient) {
+                if (weatherTempHigh != null && weatherTempLow != null) {
+                    int textMargin = 15;
+
+                    String text = weatherTempHigh;
+                    mTextPaintHighTemp.getTextBounds(text, 0, text.length(), textBounds);
+                    canvas.drawText(text, centerX + 10, centerY * 1.5f - textMargin, mTextPaintHighTemp);
+
+                    text = weatherTempLow;
+                    int highTempWidth = textBounds.width();
+                    mTextPaintLowTemp.getTextBounds(text, 0, text.length(), textBounds);
+                    canvas.drawText(text, centerX + 10 + (highTempWidth - textBounds.width()) /2, centerY * 1.5f + textBounds.height() + textMargin,
+                            mTextPaintLowTemp);
+
+//                    if (weatherTempIcon != null) {
+//                        // draw weather icon
+//                        canvas.drawBitmap(weatherTempIcon,
+//                                centerX - textBounds.width() / 2 - spaceX - weatherTempIcon
+//                                        .getWidth(),
+//                                centerY + spaceYTemp - weatherTempIcon.getHeight() / 2
+//                                        - textBounds.height() / 2, null);
+//                    }
+
+                } else {
+                    // draw temperature high
+                    String text = getString(R.string.weather_data_not_available);
+                    mTextPaintLowTemp.getTextBounds(text, 0, text.length(), textBounds);
+                    canvas.drawText(text, centerX - textBounds.width() / 2, centerY * 1.5f,
+                            mTextPaintLowTemp);
+
+                }
+            }
         }
 
         /**
