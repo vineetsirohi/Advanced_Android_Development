@@ -16,11 +16,22 @@
 
 package in.vasudev.wearapp;
 
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.wearable.Asset;
+import com.google.android.gms.wearable.DataApi;
+import com.google.android.gms.wearable.DataEvent;
+import com.google.android.gms.wearable.DataEventBuffer;
+import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.Wearable;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -31,9 +42,11 @@ import android.os.Handler;
 import android.os.Message;
 import android.support.wearable.watchface.CanvasWatchFaceService;
 import android.support.wearable.watchface.WatchFaceStyle;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.WindowInsets;
 
+import java.io.InputStream;
 import java.lang.ref.WeakReference;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
@@ -47,6 +60,8 @@ import java.util.concurrent.TimeUnit;
  * low-bit ambient mode, the text is drawn without anti-aliasing in ambient mode.
  */
 public class MyWatchFace extends CanvasWatchFaceService {
+
+    private static final String TAG = "sunshine watch";
 
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
@@ -91,6 +106,15 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
     private class Engine extends CanvasWatchFaceService.Engine {
 
+        private static final String WEATHER_PATH = "/weather";
+
+        private static final String WEATHER_TEMP_HIGH_KEY = "weather_temp_high_key";
+
+        private static final String WEATHER_TEMP_LOW_KEY = "weather_temp_low_key";
+
+        private static final String WEATHER_TEMP_ICON_KEY = "weather_temp_icon_key";
+
+
         final Handler mUpdateTimeHandler = new EngineHandler(this);
 
         boolean mRegisteredTimeZoneReceiver = false;
@@ -119,6 +143,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
         String weatherTempLow = "21°";
 
+        Bitmap mWeatherIcon = null;
+
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -139,6 +165,53 @@ public class MyWatchFace extends CanvasWatchFaceService {
          */
         boolean mLowBitAmbient;
 
+        GoogleApiClient googleApiClient;
+
+        DataApi.DataListener dataListener = new DataApi.DataListener() {
+            @Override
+            public void onDataChanged(DataEventBuffer dataEvents) {
+                Log.d(TAG, "onDataChanged(): " + dataEvents);
+
+                for (DataEvent event : dataEvents) {
+                    Log.d(TAG, "Unknown data event type   " + event.getType());
+                    if (event.getType() == DataEvent.TYPE_CHANGED) {
+                        String path = event.getDataItem().getUri().getPath();
+                        Log.d(TAG, "Path: " + path);
+                        if (WEATHER_PATH.equals(path)) {
+                            try {
+                                DataMapItem dataMapItem = DataMapItem
+                                        .fromDataItem(event.getDataItem());
+                                weatherTempHigh = dataMapItem.getDataMap()
+                                        .getString(WEATHER_TEMP_HIGH_KEY);
+                                weatherTempLow = dataMapItem.getDataMap()
+                                        .getString(WEATHER_TEMP_LOW_KEY);
+                                Asset weatherIcon = dataMapItem.getDataMap()
+                                        .getAsset(WEATHER_TEMP_ICON_KEY);
+                                mWeatherIcon = loadBitmapFromAsset(googleApiClient, weatherIcon);
+                            } catch (Exception e) {
+                                Log.d(TAG, "Exception ", e);
+                                mWeatherIcon = null;
+                            }
+                        }
+                    }
+                }
+            }
+
+            private Bitmap loadBitmapFromAsset(GoogleApiClient apiClient, Asset asset) {
+                if (asset == null) {
+                    throw new IllegalArgumentException("Asset must be non-null");
+                }
+                InputStream assetInputStream = Wearable.DataApi.getFdForAsset(apiClient, asset)
+                        .await().getInputStream();
+
+                if (assetInputStream == null) {
+                    Log.w(TAG, "Requested an unknown Asset.");
+                    return null;
+                }
+                return BitmapFactory.decodeStream(assetInputStream);
+            }
+        };
+
         @Override
         public void onCreate(SurfaceHolder holder) {
             super.onCreate(holder);
@@ -151,6 +224,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
                     .build());
             Resources resources = MyWatchFace.this.getResources();
             mYOffset = resources.getDimension(R.dimen.digital_y_offset);
+
+            mWeatherIcon = BitmapFactory.decodeResource(resources, R.mipmap.ic_launcher);
 
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(resources.getColor(R.color.background));
@@ -167,6 +242,32 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mDateFormat = new SimpleDateFormat("ccc, MMM d yyyy", Locale.getDefault());
             mDateFormat.setCalendar(mCalendar);
             mDate = new Date();
+
+            googleApiClient = new GoogleApiClient.Builder(getApplicationContext())
+                    .addApi(Wearable.API)
+                    .addConnectionCallbacks(new GoogleApiClient.ConnectionCallbacks() {
+                        @Override
+                        public void onConnected(Bundle bundle) {
+                            Log.d(TAG, "onConnected: Successfully connected to Google API client");
+                            Wearable.DataApi.addListener(googleApiClient, dataListener);
+                        }
+
+                        @Override
+                        public void onConnectionSuspended(int i) {
+                            Log.d(TAG, "onConnectionSuspended");
+                        }
+                    })
+                    .addOnConnectionFailedListener(
+                            new GoogleApiClient.OnConnectionFailedListener() {
+                                @Override
+                                public void onConnectionFailed(ConnectionResult connectionResult) {
+                                    Log.d(TAG,
+                                            "onConnectionFailed(): Failed to connect, with result : "
+                                                    + connectionResult);
+                                }
+                            })
+                    .build();
+            googleApiClient.connect();
         }
 
         @Override
@@ -339,22 +440,22 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
                     String text = weatherTempHigh;
                     mTextPaintHighTemp.getTextBounds(text, 0, text.length(), textBounds);
-                    canvas.drawText(text, centerX + 10, centerY * 1.5f - textMargin, mTextPaintHighTemp);
+                    canvas.drawText(text, centerX + 10, centerY * 1.5f - textMargin,
+                            mTextPaintHighTemp);
 
                     text = weatherTempLow;
                     int highTempWidth = textBounds.width();
                     mTextPaintLowTemp.getTextBounds(text, 0, text.length(), textBounds);
-                    canvas.drawText(text, centerX + 10 + (highTempWidth - textBounds.width()) /2, centerY * 1.5f + textBounds.height() + textMargin,
+                    canvas.drawText(text, centerX + 10 + (highTempWidth - textBounds.width()) / 2,
+                            centerY * 1.5f + textBounds.height() + textMargin,
                             mTextPaintLowTemp);
 
-//                    if (weatherTempIcon != null) {
-//                        // draw weather icon
-//                        canvas.drawBitmap(weatherTempIcon,
-//                                centerX - textBounds.width() / 2 - spaceX - weatherTempIcon
-//                                        .getWidth(),
-//                                centerY + spaceYTemp - weatherTempIcon.getHeight() / 2
-//                                        - textBounds.height() / 2, null);
-//                    }
+                    if (mWeatherIcon != null) {
+                        // draw weather icon
+                        canvas.drawBitmap(mWeatherIcon,
+                                centerX - mWeatherIcon.getWidth() - 15,
+                                centerY + mWeatherIcon.getHeight() / 2, null);
+                    }
 
                 } else {
                     // draw temperature high
