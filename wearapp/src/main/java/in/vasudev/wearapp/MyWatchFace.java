@@ -44,6 +44,7 @@ import java.util.concurrent.TimeUnit;
  * low-bit ambient mode, the text is drawn without anti-aliasing in ambient mode.
  */
 public class MyWatchFace extends CanvasWatchFaceService {
+
     private static final Typeface NORMAL_TYPEFACE =
             Typeface.create(Typeface.SANS_SERIF, Typeface.NORMAL);
 
@@ -63,8 +64,40 @@ public class MyWatchFace extends CanvasWatchFaceService {
         return new Engine();
     }
 
+    private static class EngineHandler extends Handler {
+
+        private final WeakReference<MyWatchFace.Engine> mWeakReference;
+
+        public EngineHandler(MyWatchFace.Engine reference) {
+            mWeakReference = new WeakReference<>(reference);
+        }
+
+        @Override
+        public void handleMessage(Message msg) {
+            MyWatchFace.Engine engine = mWeakReference.get();
+            if (engine != null) {
+                switch (msg.what) {
+                    case MSG_UPDATE_TIME:
+                        engine.handleUpdateTimeMessage();
+                        break;
+                }
+            }
+        }
+    }
+
     private class Engine extends CanvasWatchFaceService.Engine {
+
         final Handler mUpdateTimeHandler = new EngineHandler(this);
+
+        boolean mRegisteredTimeZoneReceiver = false;
+
+        Paint mBackgroundPaint;
+
+        Paint mTextPaint;
+
+        boolean mAmbient;
+
+        Time mTime;
 
         final BroadcastReceiver mTimeZoneReceiver = new BroadcastReceiver() {
             @Override
@@ -73,16 +106,11 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 mTime.setToNow();
             }
         };
-        boolean mRegisteredTimeZoneReceiver = false;
 
-        Paint mBackgroundPaint;
-        Paint mTextPaint;
-
-        boolean mAmbient;
-        Time mTime;
         int mTapCount;
 
         float mXOffset;
+
         float mYOffset;
 
         /**
@@ -108,7 +136,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mBackgroundPaint.setColor(resources.getColor(R.color.background));
 
             mTextPaint = new Paint();
-            mTextPaint = createTextPaint(resources.getColor(R.color.digital_text));
+            mTextPaint = createTextPaint(resources.getColor(R.color.white_text));
 
             mTime = new Time();
         }
@@ -259,7 +287,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
         }
 
         /**
-         * Returns whether the {@link #mUpdateTimeHandler} timer should be running. The timer should
+         * Returns whether the {@link #mUpdateTimeHandler} timer should be running. The timer
+         * should
          * only run when we're visible and in interactive mode.
          */
         private boolean shouldTimerBeRunning() {
@@ -276,26 +305,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 long delayMs = INTERACTIVE_UPDATE_RATE_MS
                         - (timeMs % INTERACTIVE_UPDATE_RATE_MS);
                 mUpdateTimeHandler.sendEmptyMessageDelayed(MSG_UPDATE_TIME, delayMs);
-            }
-        }
-    }
-
-    private static class EngineHandler extends Handler {
-        private final WeakReference<MyWatchFace.Engine> mWeakReference;
-
-        public EngineHandler(MyWatchFace.Engine reference) {
-            mWeakReference = new WeakReference<>(reference);
-        }
-
-        @Override
-        public void handleMessage(Message msg) {
-            MyWatchFace.Engine engine = mWeakReference.get();
-            if (engine != null) {
-                switch (msg.what) {
-                    case MSG_UPDATE_TIME:
-                        engine.handleUpdateTimeMessage();
-                        break;
-                }
             }
         }
     }
