@@ -62,6 +62,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
      */
     private static final int MSG_UPDATE_TIME = 0;
 
+
     @Override
     public Engine onCreateEngine() {
         return new Engine();
@@ -96,6 +97,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
         Paint mBackgroundPaint;
 
+        Paint mWhiteBackgroundPaint;
+
         Paint mTextPaintTime;
 
         Paint mTextPaintDate;
@@ -103,7 +106,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
         Paint mTextPaintHighTemp;
 
         Paint mTextPaintLowTemp;
-
 
         boolean mAmbient;
 
@@ -117,7 +119,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
             @Override
             public void onReceive(Context context, Intent intent) {
                 mCalendar.setTimeZone(TimeZone.getDefault());
-                mDateFormat = new SimpleDateFormat("ccc, MMM d yyyy", Locale.getDefault());
                 mDateFormat.setCalendar(mCalendar);
             }
         };
@@ -150,16 +151,12 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mBackgroundPaint = new Paint();
             mBackgroundPaint.setColor(resources.getColor(R.color.background));
 
-            mTextPaintTime = new Paint();
+            mWhiteBackgroundPaint = new Paint();
+            mWhiteBackgroundPaint.setColor(resources.getColor(R.color.white));
+
             mTextPaintTime = createTextPaint(resources.getColor(R.color.white_text));
-
-            mTextPaintDate = new Paint();
             mTextPaintDate = createTextPaint(resources.getColor(R.color.secondary_white_text));
-
-            mTextPaintHighTemp = new Paint();
             mTextPaintHighTemp = createTextPaint(resources.getColor(R.color.primary_text));
-
-            mTextPaintLowTemp = new Paint();
             mTextPaintLowTemp = createTextPaint(resources.getColor(R.color.secondary_text));
 
             mCalendar = Calendar.getInstance();
@@ -191,7 +188,6 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
                 // Update time zone in case it changed while we weren't visible.
                 mCalendar.setTimeZone(TimeZone.getDefault());
-                mDateFormat = new SimpleDateFormat("ccc, MMM d yyyy", Locale.getDefault());
                 mDateFormat.setCalendar(mCalendar);
             } else {
                 unregisterReceiver();
@@ -303,7 +299,11 @@ public class MyWatchFace extends CanvasWatchFaceService {
                 canvas.drawColor(Color.BLACK);
             } else {
                 canvas.drawRect(0, 0, bounds.width(), bounds.height(), mBackgroundPaint);
+                canvas.drawRect(0, bounds.height() / 2, bounds.width(), bounds.height(),
+                        mWhiteBackgroundPaint);
             }
+
+//            update text sizes
 
 //            update time and calendar
             long now = System.currentTimeMillis();
@@ -326,7 +326,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
             String dateText = mDateFormat.format(mDate).toUpperCase();
             mTextPaintDate.getTextBounds(dateText, 0, dateText.length(), textBounds);
-            canvas.drawText(dateText, centerX, mYOffset + mTextPaintDate.getTextSize() + 10, mTextPaintDate);
+            canvas.drawText(dateText, centerX, mYOffset + mTextPaintDate.getTextSize() + 5,
+                    mTextPaintDate);
         }
 
         /**
