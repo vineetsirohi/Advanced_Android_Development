@@ -21,10 +21,13 @@ import com.google.android.gms.common.GoogleApiAvailability;
 import com.example.android.sunshine.app.data.WeatherContract;
 import com.example.android.sunshine.app.gcm.RegistrationIntentService;
 import com.example.android.sunshine.app.sync.SunshineSyncAdapter;
+import com.example.android.sunshine.app.sync.SyncWithWear;
 
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.ActivityCompat;
@@ -91,7 +94,7 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
         }
 
         SunshineSyncAdapter.initializeSyncAdapter(this);
-//        new SyncWithWear().syncWithWear(MainActivity.this);
+        new SyncWithWearAsyncTask().execute(MainActivity.this);
 
         // If Google Play Services is up to date, we'll want to register GCM. If it is not, we'll
         // skip the registration and this device will not receive any downstream messages from
@@ -109,6 +112,16 @@ public class MainActivity extends AppCompatActivity implements ForecastFragment.
                 startService(intent);
             }
         }
+    }
+
+    class SyncWithWearAsyncTask extends AsyncTask<Context, Void, Void>{
+
+        @Override
+        protected Void doInBackground(Context... params) {
+            new SyncWithWear().syncWithWear(params[0]);
+            return null;
+        }
+
     }
 
     @Override
