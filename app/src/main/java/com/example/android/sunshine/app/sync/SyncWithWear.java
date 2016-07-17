@@ -10,18 +10,15 @@ import com.google.android.gms.wearable.PutDataRequest;
 import com.google.android.gms.wearable.Wearable;
 
 import com.bumptech.glide.Glide;
-import com.example.android.sunshine.app.R;
 import com.example.android.sunshine.app.Utility;
 import com.example.android.sunshine.app.data.WeatherContract;
 
-import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -33,6 +30,10 @@ import java.util.concurrent.ExecutionException;
  * Created by vineet on 17-Jul-16.
  */
 public class SyncWithWear {
+
+    private static final int IMG_WIDTH = 100;
+
+    private static final int IMG_HEIGHT = 100;
 
     public final String LOG_TAG = SyncWithWear.class.getSimpleName();
 
@@ -51,21 +52,7 @@ public class SyncWithWear {
             Resources resources = context.getResources();
             int artResourceId = Utility.getArtResourceForWeatherCondition(weatherId);
             String artUrl = Utility.getArtUrlForWeatherCondition(context, weatherId);
-
-            // On Honeycomb and higher devices, we can retrieve the size of the large icon
-            // Prior to that, we use a fixed size
-            @SuppressLint("InlinedApi")
-            int largeIconWidth = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB
-                    ? resources
-                    .getDimensionPixelSize(android.R.dimen.notification_large_icon_width)
-                    : resources
-                            .getDimensionPixelSize(R.dimen.notification_large_icon_default);
-            @SuppressLint("InlinedApi")
-            int largeIconHeight = Build.VERSION.SDK_INT >= Build.VERSION_CODES.HONEYCOMB
-                    ? resources
-                    .getDimensionPixelSize(android.R.dimen.notification_large_icon_height)
-                    : resources
-                            .getDimensionPixelSize(R.dimen.notification_large_icon_default);
+            Log.d(LOG_TAG, "syncWithWear: artUrl: " + artUrl);
 
             // Retrieve the large icon
             Bitmap largeIcon;
@@ -75,7 +62,8 @@ public class SyncWithWear {
                         .asBitmap()
                         .error(artResourceId)
                         .fitCenter()
-                        .into(largeIconWidth, largeIconHeight).get();
+                        .into(IMG_WIDTH, IMG_HEIGHT)
+                        .get();
             } catch (InterruptedException | ExecutionException e) {
                 Log.d(LOG_TAG, "Error retrieving large icon from " + artUrl, e);
                 largeIcon = BitmapFactory.decodeResource(resources, artResourceId);
@@ -117,7 +105,7 @@ public class SyncWithWear {
                 .build();
         mGoogleApiClient.connect();
 
-        Asset asset = toAsset(Bitmap.createScaledBitmap(largeIcon, 52, 52, true));
+        Asset asset = toAsset(Bitmap.createScaledBitmap(largeIcon, IMG_WIDTH, IMG_HEIGHT, true));
 
         PutDataMapRequest putDataMapRequest = PutDataMapRequest.create(WEATHER_PATH);
         putDataMapRequest.getDataMap()

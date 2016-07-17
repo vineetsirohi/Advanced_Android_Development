@@ -239,10 +239,10 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mWhiteBackgroundPaint = new Paint();
             mWhiteBackgroundPaint.setColor(resources.getColor(R.color.white));
 
-            mTextPaintTime = createTextPaint(resources.getColor(R.color.white_text));
-            mTextPaintDate = createTextPaint(resources.getColor(R.color.secondary_white_text));
-            mTextPaintHighTemp = createTextPaint(resources.getColor(R.color.primary_text));
-            mTextPaintLowTemp = createTextPaint(resources.getColor(R.color.secondary_text));
+            mTextPaintTime = createTextPaint(resources.getColor(R.color.white_text), "roboto_thin.ttf");
+            mTextPaintDate = createTextPaint(resources.getColor(R.color.secondary_white_text), "RobotoCondensed-Regular.ttf");
+            mTextPaintHighTemp = createTextPaint(resources.getColor(R.color.primary_text), "Roboto-Light.ttf");
+            mTextPaintLowTemp = createTextPaint(resources.getColor(R.color.secondary_text), "Roboto-Light.ttf");
 
             mCalendar = Calendar.getInstance();
             mDateFormat = new SimpleDateFormat("ccc, MMM d yyyy", Locale.getDefault());
@@ -282,11 +282,14 @@ public class MyWatchFace extends CanvasWatchFaceService {
             super.onDestroy();
         }
 
-        private Paint createTextPaint(int textColor) {
+        private Paint createTextPaint(int textColor, String font) {
             Paint paint = new Paint();
             paint.setColor(textColor);
             paint.setTypeface(NORMAL_TYPEFACE);
             paint.setAntiAlias(true);
+            if (font != null) {
+                paint.setTypeface(Typeface.createFromAsset(getAssets(), font));
+            }
             return paint;
         }
 
@@ -336,14 +339,15 @@ public class MyWatchFace extends CanvasWatchFaceService {
             mXOffset = resources.getDimension(isRound
                     ? R.dimen.digital_x_offset_round : R.dimen.digital_x_offset);
             mYOffset = resources
-                    .getDimension(isRound ? R.dimen.digital_y_offset : R.dimen.digital_y_offset);
+                    .getDimension(
+                            isRound ? R.dimen.digital_y_offset_round : R.dimen.digital_y_offset);
             float textSize = resources.getDimension(isRound
                     ? R.dimen.digital_text_size_round : R.dimen.digital_text_size);
 
             mTextPaintTime.setTextSize(textSize);
             mTextPaintTime.setTextAlign(Paint.Align.CENTER);
 
-            mTextPaintDate.setTextSize(textSize / 2);
+            mTextPaintDate.setTextSize(textSize / 2.5f);
             mTextPaintDate.setTextAlign(Paint.Align.CENTER);
 
             mTextPaintHighTemp.setTextSize(textSize);
@@ -441,7 +445,7 @@ public class MyWatchFace extends CanvasWatchFaceService {
 
             String dateText = mDateFormat.format(mDate).toUpperCase();
             mTextPaintDate.getTextBounds(dateText, 0, dateText.length(), textBounds);
-            canvas.drawText(dateText, centerX, mYOffset + mTextPaintDate.getTextSize() + 5,
+            canvas.drawText(dateText, centerX, mYOffset + mTextPaintDate.getTextSize() + 10,
                     mTextPaintDate);
 
             if (!mAmbient) {
@@ -464,7 +468,8 @@ public class MyWatchFace extends CanvasWatchFaceService {
                         // draw weather icon
                         canvas.drawBitmap(mWeatherIcon,
                                 centerX - mWeatherIcon.getWidth() - 15,
-                                centerY + mWeatherIcon.getHeight() / 2, null);
+                                centerY + 15, null);
+
                     }
 
                 } else {
