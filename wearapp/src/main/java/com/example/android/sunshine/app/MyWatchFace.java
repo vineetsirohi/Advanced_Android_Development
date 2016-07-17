@@ -24,6 +24,7 @@ import com.google.android.gms.wearable.DataApi;
 import com.google.android.gms.wearable.DataEvent;
 import com.google.android.gms.wearable.DataEventBuffer;
 import com.google.android.gms.wearable.DataMapItem;
+import com.google.android.gms.wearable.NodeApi;
 import com.google.android.gms.wearable.Wearable;
 
 import android.content.BroadcastReceiver;
@@ -256,6 +257,16 @@ public class MyWatchFace extends CanvasWatchFaceService {
                         public void onConnected(Bundle bundle) {
                             Log.d(TAG, "onConnected: Successfully connected to Google API client");
                             Wearable.DataApi.addListener(googleApiClient, dataListener);
+
+                            Wearable.NodeApi.getConnectedNodes(googleApiClient).setResultCallback(new ResultCallback<NodeApi.GetConnectedNodesResult>() {
+                                @Override
+                                public void onResult(NodeApi.GetConnectedNodesResult getConnectedNodesResult) {
+                                    if (getConnectedNodesResult.getStatus().isSuccess() && getConnectedNodesResult.getNodes().size() > 0) {
+                                        String remoteNodeId = getConnectedNodesResult.getNodes().get(0).getId();
+                                        Wearable.MessageApi.sendMessage(googleApiClient, remoteNodeId, "/provide-weather-data", null);
+                                    }
+                                }
+                            });
                         }
 
                         @Override
@@ -285,10 +296,11 @@ public class MyWatchFace extends CanvasWatchFaceService {
         private Paint createTextPaint(int textColor, String font) {
             Paint paint = new Paint();
             paint.setColor(textColor);
-            paint.setTypeface(NORMAL_TYPEFACE);
             paint.setAntiAlias(true);
             if (font != null) {
                 paint.setTypeface(Typeface.createFromAsset(getAssets(), font));
+            } else {
+                paint.setTypeface(NORMAL_TYPEFACE);
             }
             return paint;
         }

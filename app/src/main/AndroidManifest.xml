@@ -185,6 +185,13 @@
                 android:name=".gcm.RegistrationIntentService"
                 android:exported="false">
         </service>
+
+        <service android:name=".WearRequestForWeatherDataService">
+            <intent-filter>
+                <action android:name="com.google.android.gms.wearable.MESSAGE_RECEIVED"/>
+                <data android:scheme="wear" android:host="*" android:path="/provide-weather-data"/>
+            </intent-filter>
+        </service>
     </application>
 
 </manifest>
